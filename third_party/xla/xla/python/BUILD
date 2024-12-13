@@ -433,7 +433,7 @@ cc_library(
         "@local_tsl//tsl/profiler/lib:profiler_session",
         "@local_tsl//tsl/profiler/lib:traceme",
         "@local_tsl//tsl/profiler/protobuf:profiled_instructions_proto_cc",
-    ] + if_cuda([
+    ] + if_google(if_cuda([
         "@local_config_cuda//cuda:cuda_headers",
     ]) + if_rocm([
         # keep sorted
@@ -441,7 +441,7 @@ cc_library(
         "@local_config_rocm//rocm:rocm_headers",
     ]) + if_cuda_or_rocm([
         ":py_client_gpu",  # TODO(b/337876408): remove after migration to plugin
-    ]) + if_google(["@com_google_protobuf//:any_cc_proto"]),
+    ]) + ["@com_google_protobuf//:any_cc_proto"]),
 )
 
 cc_library(
