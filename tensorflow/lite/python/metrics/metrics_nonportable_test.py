@@ -52,6 +52,7 @@ class MetricsNonportableTest(test_util.TensorFlowTestCase):
 
   def test_TFLiteMetrics_creation_no_arg_success(self):
     metrics.TFLiteMetrics()
+    self.assertTrue(False)
 
   def test_TFLiteMetrics_creation_arg_success(self):
     metrics.TFLiteMetrics('hash', '/path/to/model')
