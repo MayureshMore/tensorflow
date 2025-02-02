@@ -15,7 +15,6 @@ limitations under the License.
 
 #include "xla/service/collective_permute_decomposer.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -36,14 +35,13 @@ limitations under the License.
 #include "xla/hlo/ir/hlo_instruction.h"
 #include "xla/hlo/ir/hlo_instructions.h"
 #include "xla/hlo/ir/hlo_opcode.h"
-#include "xla/hlo/parser/hlo_parser.h"
+#include "xla/hlo/ir/source_target_pairs.h"
 #include "xla/service/call_graph.h"
 #include "xla/service/collective_conflict_analysis.h"
 #include "xla/service/collective_ops_utils.h"
 #include "xla/service/collective_permute_cycle.h"
 #include "xla/service/gpu/backend_configs.pb.h"
 #include "xla/service/pattern_matcher.h"
-#include "xla/service/source_target_pairs.h"
 #include "xla/shape.h"
 #include "xla/shape_util.h"
 #include "xla/tsl/platform/errors.h"
@@ -74,7 +72,7 @@ static bool ShouldDecompose(
 
   // Do not decompose cycles as this leads to deadlocks in NCCL.
   if (collective_permute_cycle::HasCycles(
-          SourceTargetPairs(collective_permute.source_target_pairs()))) {
+          collective_permute.source_target_pairs())) {
     return false;
   }
 
@@ -112,7 +110,7 @@ struct DecomposedCp {
   HloInstruction* recv;
   HloInstruction* send_done;
   HloInstruction* recv_done;
-  std::vector<std::pair<int64_t, int64_t>> source_target_pairs;
+  SourceTargetPairs source_target_pairs;
 };
 
 }  // namespace
@@ -124,7 +122,7 @@ static xla::FrontendAttributes ExtractFrontendAttributes(
   attributes.mutable_map()->insert(old_attributes.map().begin(),
                                    old_attributes.map().end());
   (*attributes.mutable_map())[kSendRecvSourceTargetPairsAttr] =
-      SourceTargetPairs(cp.source_target_pairs()).ToString();
+      cp.source_target_pairs().ToString();
   return attributes;
 }
 
@@ -206,8 +204,8 @@ static std::optional<std::pair<HloCollectivePermuteInstruction*,
                                HloCollectivePermuteInstruction*>>
 CheckCyclePatterns(HloCollectivePermuteInstruction* cp0,
                    HloCollectivePermuteInstruction* cp1) {
-  const SourceTargetPairs cp0_pairs(cp0->source_target_pairs());
-  const SourceTargetPairs cp1_pairs(cp1->source_target_pairs());
+  const SourceTargetPairs& cp0_pairs = cp0->source_target_pairs();
+  const SourceTargetPairs& cp1_pairs = cp1->source_target_pairs();
   if (collective_permute_cycle::IsForwardCycle(cp0_pairs, cp1_pairs) ||
       collective_permute_cycle::IsBackwardCycle(cp0_pairs, cp1_pairs)) {
     // cp0 represents the backedge for the cycle.
