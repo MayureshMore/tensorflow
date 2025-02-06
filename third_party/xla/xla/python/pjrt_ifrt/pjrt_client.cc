@@ -965,8 +965,9 @@ absl::StatusOr<tsl::RCReference<Array>> PjRtClient::MakeArrayFromHostBuffer(
     }
     buffers.push_back(std::move(buffer));
   }
+  auto layout = buffers.front()->layout();
   return PjRtArray::Create(this, dtype, std::move(shape), std::move(sharding),
-                           std::move(buffers));
+                           std::move(buffers), std::move(layout));
 }
 
 absl::StatusOr<tsl::RCReference<Array>>
@@ -1071,8 +1072,19 @@ PjRtClient::AssembleArrayFromSingleDeviceArrays(
         break;
     }
   }
+  std::shared_ptr<const PjRtLayout> layout;
+  if (dtype.kind() == DType::kToken) {
+    layout = std::make_shared<PjRtLayout>(xla::Layout());
+  } else if (buffers.empty()) {
+    TF_ASSIGN_OR_RETURN(layout,
+                        GetDefaultLayout(dtype, shape.dims(),
+                                         sharding->devices()->devices().front(),
+                                         sharding->memory_kind()));
+  } else {
+    layout = buffers.front()->layout();
+  }
   return PjRtArray::Create(this, dtype, std::move(shape), std::move(sharding),
-                           std::move(buffers));
+                           std::move(buffers), std::move(layout));
 }
 
 absl::StatusOr<std::vector<tsl::RCReference<Array>>> PjRtClient::CopyArrays(
