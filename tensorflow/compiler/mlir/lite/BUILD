@@ -15,7 +15,10 @@ load("//tensorflow/core/platform:rules_cc.bzl", "cc_library")
 
 package(
     # copybara:uncomment default_applicable_licenses = ["//tensorflow:LICENSE"],
-    default_visibility = ["//visibility:public"],
+    default_visibility = [
+        "//third_party/odml/litert:__subpackages__",
+        "//visibility:public",
+    ],
     licenses = ["notice"],
 )
 
