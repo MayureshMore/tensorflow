@@ -256,7 +256,6 @@ cc_library(
         ":tac_filter_cc_proto",
         ":tac_importer_exporter",
         "//tensorflow/compiler/mlir/lite:tensorflow_lite",
-        "//tensorflow/compiler/mlir/lite:tf_tfl_passes",
         "//tensorflow/compiler/mlir/lite/experimental/common:outline_operations",
         "//tensorflow/compiler/mlir/lite/experimental/tac/hardwares:target_hardware",
         "//tensorflow/compiler/mlir/tensorflow:cluster_util",
@@ -271,7 +270,6 @@ cc_library(
         "@llvm-project//mlir:FuncDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:SideEffectInterfaces",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:TransformUtils",
         "@llvm-project//mlir:Transforms",
@@ -398,6 +396,7 @@ proto_library(
     name = "tac_filter_proto",
     srcs = ["tac_filter.proto"],
     compatible_with = get_compatible_with_portable(),
+    deps = ["//google/protobuf:any"],
 )
 
 cc_proto_library(

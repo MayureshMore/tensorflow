@@ -68,7 +68,10 @@ std::unique_ptr<OperationPass<ModuleOp>> CreateFoldConstantsToSubgraphPass(
 // Create an instance of TacFilterPass.
 std::unique_ptr<OperationPass<ModuleOp>> CreateTacFilterPass(
     ::third_party::tensorflow::compiler::mlir::lite::experimental::tac::
-        TacFilters* tac_filters);
+        TacFilters* tac_filters,
+    std::function<void(mlir::Operation* op,
+                       const google::protobuf::Any& custom_options)>
+        custom_options_callback);
 
 }  // namespace tac
 }  // namespace TFL

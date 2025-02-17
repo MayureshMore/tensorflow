@@ -102,6 +102,31 @@ class RaiseTargetSubgraphsPass
       int& func_count, const TF::SideEffectAnalysis::Info& side_effect_info);
 };
 
+// Returns the custom options fingerprint for an added function op, by walking
+// through the ops in the function and collating all the custom options
+// fingerprints.
+StringAttr GetCustomOptionsFingerprint(func::FuncOp func) {
+  StringAttr custom_options_fingerprint;
+  func.walk([&](Operation* op) {
+    if (op->hasAttr(kCustomOptionsFingerprint)) {
+      if (custom_options_fingerprint != nullptr &&
+          custom_options_fingerprint !=
+              op->getAttr(kCustomOptionsFingerprint)) {
+        std::cerr << "custom options fingerprint mismatch: "
+                  << custom_options_fingerprint.getValue().str() << " vs "
+                  << op->getAttr(kCustomOptionsFingerprint)
+                         .cast<StringAttr>()
+                         .getValue()
+                         .str()
+                  << "\n";
+      }
+      custom_options_fingerprint =
+          mlir::cast<StringAttr>(op->getAttr(kCustomOptionsFingerprint));
+    }
+  });
+  return custom_options_fingerprint;
+}
+
 // After raising ops and adding the Func & Call op, call this function
 // to set attributes specific to this pass.
 void AddAttrs(OpsAdded& ops_added, OpBuilder& builder, int func_count) {
@@ -112,6 +137,11 @@ void AddAttrs(OpsAdded& ops_added, OpBuilder& builder, int func_count) {
 
   added_func_op->setAttr(kInterfaceNameAttr, interface_name);
   added_call_op->setAttr(kInterfaceNameAttr, interface_name);
+  auto custom_options_fingerprint = GetCustomOptionsFingerprint(added_func_op);
+  if (custom_options_fingerprint != nullptr) {
+    added_func_op->setAttr(kCustomOptionsFingerprint,
+                           custom_options_fingerprint);
+  }
 
   StringAttr device = mlir::cast<StringAttr>(
       added_func_op->getRegion(0).getBlocks().front().front().getAttr(kDevice));
@@ -209,6 +239,14 @@ void RaiseTargetSubgraphsPass::RaiseTargetSubgraphsForBlock(
             : absl::StrCat(
                   device_type.value().hardware, "_",
                   GetInferenceString(device_type.value().inference_type));
+    // Append the custom options fingerprint to the inference device type
+    // string, to compile functions with different fingerprints separately.
+    auto custom_options_fingerprint = op->getAttr(kCustomOptionsFingerprint);
+    if (custom_options_fingerprint != nullptr) {
+      StringAttr stack_str = mlir::cast<StringAttr>(custom_options_fingerprint);
+      absl::StrAppend(&concat_inference_device_type_string, "_",
+                      stack_str.getValue().str());
+    }
     return concat_inference_device_type_string;
   };
 
